@@ -9,3 +9,7 @@
 (defn -main
   []
   (foo "x"))
+
+(defn some-func
+  []
+  "testing :Gcommit")
