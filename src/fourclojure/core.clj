@@ -190,3 +190,11 @@
 (= (drop-nth [:a :b :c :d :e :f] 2) [:a :c :e])
 (= (drop-nth [1 2 3 4 5 6] 4) [1 2 3 5 6])
 
+; Problem 42- Write a function which calculates factorials
+(defn fac
+  [n]
+ (reduce * (filter pos? (range (inc n)))))
+(= (fac 1) 1)
+(= (fac 3) 6)
+(= (fac 5) 120)
+(= (fac 8) 40320)
