@@ -1,3 +1,4 @@
+(ns fourclojure.joyofclojure)
 ;; Anything you type in here will be executed
 ;; immediately with the results shown on the
 ;; right.
@@ -275,3 +276,259 @@ evil-false
       :let [method-name (.getName method)]
       :when (re-find #"Vis" method-name)]
   method-name)
+
+; Truncation example
+(let [imadeuapi 3.14159265358979323846264338327950288419716939937M]
+ (println (class imadeuapi))
+  imadeuapi)
+
+(let [butieatedit 3.14159265358979323846264338327950288419716939937]
+  (println (class butieatedit))
+    butieatedit)
+
+; Promotion - looks like they switched from Integer to Long
+(def clueless 9)
+(class clueless)
+(class (+ clueless 9000000000000000))
+(class (+ clueless 90000000000000000000))
+(class (+ clueless 9.0))
+
+; Overflow -- doesn't really work
+(+ Integer/MAX_VALUE Integer/MAX_VALUE)
+
+; Underflow
+(float 0.0000000000000000000000000000000000000000000001)
+1.0E-430
+
+; Rounding errors
+(let [aprox-interval (/ 209715 2097152)
+      actual-interval (/ 1 10)
+      hours (* 3600 100 10)
+      actual-total (double (* hours actual-interval))
+      aprox-total (double (* hours aprox-interval))]
+  (- actual-total aprox-total))
+ 
+; In Clojure, any computation involving even a single double will result in a 
+; value that's a double
+(+ 0.1M 0.1M 0.1M 0.1 0.1M 0.1M 0.1M 0.1M 0.1M 0.1M)
+; Weird floating point stuff and it's not associative or distributive
+(def a 1.0e50)
+(def b -1.0e50)
+(def c 17.0e00)
+(+ (+ a b) c) ; Associativity should guarantee 17.0 also
+(+ a (+ b c))
+ 
+(let [a (float 0.1)
+      b (float 0.2)
+      c (float 0.3)]
+  (=  ; not equal
+    (* a (+ b c))
+    (+ (* a b)) (* a c)))
+; For absolutely precise calculations, rationals are the best choice
+(def a (rationalize 1.0e50))
+(def b (rationalize -1.0e50))
+(def c (rationalize 17.0e00))
+(+ (+ a b) c)
+(+ a (+ b c)) ; Associativity preserved
+
+;Distributivity preserved
+(let [a (rationalize 0.1)
+      b (rationalize 0.2)
+      c (rationalize 0.3)]
+  (= 
+   (* a (+ b c))
+   (+ (* a b) (* a c))))
+
+; To ensure that your numbers remain rational, you can use rational? to check 
+; whether a given number is one and then use rationalize to convert it to one. There 
+; are a few rules of thumb to remember if you want to maintain perfect accuracy in your 
+; computations: 
+; 1 Never use Java math libraries unless they return results of BigDecimal, and even 
+; then be suspicious. 
+; 2 Don't rationalize values that are Java float or double primitives. 
+; 3 If you must write your own high-precision calculations, do so with rationals. 
+; 4 Only convert to a floating-point representation as a last resort. 
+; Finally, you can extract the constituent parts of a rational using the numerator and 
+; denominator functions: 
+(numerator (/ 123 10))
+(denominator (/ 123 10))
+
+
+; When to use Keywords
+; Keywords always refer to themselves
+(eval :magma)
+;They are truthy
+(if :magma :truthy :falsey)
+; Good for keys
+(def population {:zombies 2700 :humans 9})
+(:zombies population)
+(println (/ (:zombies population)
+            (:humans population))
+         "zombies per capita")
+; Enumerations
+(def sizes [:small :medium :large])
+; as directives t0 functions
+(defn pour
+  [lb ub]
+  (cond
+    (= ub :tojours) (iterate inc lb)
+    :else (range lb ub)))
+(pour 1 10)
+(pour 1 :tojours)
+
+; Keywords don't belong to any namespace
+(defn do-blowfish [directive]
+  (case directive
+    :aquarium/blowfish (println "feed the fish")
+    :crypto/blowfish (println "encode the message")
+    :blowfish (println "not sure what to do")))
+(comment 
+  (ns crypto)
+  (fourclojure.joyofclojure/do-blowfish :blowfish)
+  (fourclojure.joyofclojure/do-blowfish ::blowfish)
+  (ns aquarium)
+  (fourclojure.joyofclojure/do-blowfish :blowfish)
+  (fourclojure.joyofclojure/do-blowfish :blowfish))
+;
+; Keywords vs Symbols
+(identical? :goat :goat)
+(identical? 'goat 'goat)
+
+(= 'goat 'goat)
+(+ 2 2)
+[1 2 3 4 5]
+(vec (range 10))
+
+; Already have a vector but want to "pour" several values into it, use into
+(let [my-vector [:a :b :c]]
+  (into my-vector (range 10)))
+
+; primitive vectors stores contents as primitives internally
+; will coerce additions into its internal type
+(into (vector-of :int) [Math/PI 2 1.3])
+(into (vector-of :char) [100 101 102])
+;(into (vector-of :int) [1 2 62387637126781267326786327863]) throws IllegalArgumentException: Value out of range for int
+
+(def a-to-j (vec (map char (range 65 75))))
+; All of these do the same work and return \E
+(nth a-to-j 4)
+(get a-to-j 4)
+(a-to-j 4)
+
+; Vectors can be walked in either direction
+(seq a-to-j)
+(rseq a-to-j)
+
+; Any item in a vector can be changed using the assoc function
+(assoc a-to-j 4 "no longer E")
+; assoc only works for vectors on indices that already exist in the vector, or one step past the end
+; replace and assoc work on seqs and vectors, but replace uses assoc whem given a vector
+(replace {2 :a 4 :b} [1 2 3 2 3 4])
+
+; assoc-in and update-in are for working with nested structures of vectors and/or maps
+(def matrix
+  [[1 2 3]
+   [4 5 6]
+   [7 8 9]])
+
+(get-in matrix [1 2])
+(get-in matrix [2])
+(get-in matrix [2 2])
+
+(assoc-in matrix [1 2] 'x)
+
+;update-in takes a function to apply to an existing value, instead of overwriting it
+(update-in matrix [1 2] * 100)
+
+
+; a function for finding the neighbors of a spot on a 2D matrix
+(defn neighbors
+  ([size yx] (neighbors [[-1 0] [1 0] [0 -1] [0 1]] size yx))
+  ([deltas size yx]
+   (filter (fn [new-yx]
+           (every? #(< -1 % size) new-yx))
+         (map #(map + yx %) deltas))))
+
+(map #(get-in matrix %) (neighbors 3 [0 0]))
+
+; Vectors as stacks
+; ; conj pushes onto the right sde, pop pops off the right side
+(def my-stack [1 2 3])
+(conj my-stack 4)
+; notice the persistance
+(peek my-stack)
+(pop my-stack)
+(+ (peek my-stack) (peek (pop my-stack)))
+; conj, pop, and peek work on any object that implements clojure.lang.IPersistentStack
+;
+; idiomatic clojure code does not use reverse.  Consider using a vector as an accumulator.
+; requires reverse
+(defn strict-map
+  [f coll]
+  (loop [coll coll, acc nil]
+    (if (empty? coll)
+      (reverse acc)
+      (recur (next coll) (cons (f (first coll)) acc)))))
+(strict-map - (range 5))
+
+; does not require reverse
+(defn strict-map2
+  [f coll]
+  (loop [coll coll, acc []] 
+    (if (empty? coll)
+      acc
+      (recur (next coll) (conj acc (f (first coll)))))))
+(strict-map2 - (range 5))
+
+; subvectors
+(subvec a-to-j 3 6)
+; Vectors as MapEntries
+(first {:width 10, :height 20,  :depth 15})
+; it's a vector
+(vector? (first {:width 10 :height 20 :depth 15}))
+; can use conj, get on map entries, can destructure
+(doseq [[dimension amount] {:width 10 :height 20 :depth 15}]
+  (println (str (name dimension) ":") amount  "inches"))
+; Lists
+; in idiomatic clojure, lists are used to represent code forms
+;
+; cons and conj act differently
+(cons 1 '(2 3))
+(conj '(2 3) 1)
+; the 'right' way is to use conj, because it is more efficient
+; conj also guarantees that it will be a list, cons only guarantees
+; it will be a seq.  Use cons on lay seqs, a range or any other type of
+; seq.  If you want it to definitely be a list, use conj.
+
+; lists can also be used as stacks
+(pop '(1 2 3))
+(peek '(1 2 3))
+(conj '(1 2 3) 4)
+
+; Queues
+(defmethod print-method clojure.lang.PersistentQueue 
+  [q, w]
+   (print-method '<- w)  (print-method  (seq q) w)  (print-method '-< w))
+(def schedule
+  (conj clojure.lang.PersistentQueue/EMPTY
+        :wake-up :shower :brush-teeth)) 
+(print schedule)
+(peek schedule)
+(pop schedule)
+(rest schedule)
+
+; sets - collection of unique unsorted elements
+; sets are functions of their elements that return the matched element or nil
+(#{:a :b :c :d} :c)
+(#{:a :b :c :d} :e)
+; can be queried using get
+(get #{:a :b :c :d} :a)
+(get #{:a 1 :B 2} :nothing)
+; sorted sets need to be comparable
+(sorted-set 2 3 1)
+(sorted-set [3 4] [1 2])
+(sorted-set b 2 :c a 3 1)
+
+; contains is weird
+(contains? #{1 2 4 5} 4)
+(contains? [1 2 4 3] 4)
