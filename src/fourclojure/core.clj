@@ -901,7 +901,7 @@
                           (map #(* % %) (range)))
         perfect-square? (fn [n] (boolean (some #(= % n) (take n perfect-squares))))]
     (apply str (interpose "," (filter perfect-square?
-                                      (map (comp (fn [a] (Integer. a)) str) (remove #{\,} (seq s))))))))
+                                      (map (fn [a] (Integer. a)) (re-seq #"\d+" s)))))))
 (map )
 (def perfect-squares
   (lazy-seq
@@ -920,4 +920,20 @@
 (Integer/parseInt "4")
 (=  (filter-perfect "4,5,6,7,8,9") "4,9")
 (=  (filter-perfect "15,16,25,36,37") "16,25,36")
-(filter perfect-square? (map (comp (fn [a] (Integer. a)) str) (remove #{\,} (seq "14,15,16,17,18"))))
+(filter perfect-square? (map (fn [a] (Integer. a)) (re-seq #"\d+" "15,16,25,36,37")))
+(re-seq #"\d+" "14,15,16,17,18")
+
+; Problem 75 - Euler's Totient Function
+; Two numbers are coprime if their greatest common divisor equals 1. Euler's 
+; totient function f(x) is defined as the number of positive integers less than
+; x which are coprime to x. The special case f(1) equals 1. Write a function 
+; which calculates Euler's totient function.
+(defn totient
+  [x]
+  (letfn [(gcd [a b] (if (zero? b) a (gcd b (mod a b))))]
+    (if (= 1 x) x
+      (count (filter #(= 1 (gcd x %)) (range 1 x))))))
+(= (totient 1) 1)
+(=  (totient 10)  (count '(1 3 7 9)) 4)
+(=  (totient 40) 16)
+(=  (totient 99) 60)
