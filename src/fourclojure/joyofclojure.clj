@@ -377,22 +377,22 @@ evil-false
 (pour 1 :tojours)
 
 ; Keywords don't belong to any namespace
-(defn do-blowfish [directive]
-  (case directive
-    :aquarium/blowfish (println "feed the fish")
-    :crypto/blowfish (println "encode the message")
-    :blowfish (println "not sure what to do")))
-(comment 
-  (ns crypto)
-  (fourclojure.joyofclojure/do-blowfish :blowfish)
-  (fourclojure.joyofclojure/do-blowfish ::blowfish)
-  (ns aquarium)
-  (fourclojure.joyofclojure/do-blowfish :blowfish)
-  (fourclojure.joyofclojure/do-blowfish :blowfish))
+;(defn do-blowfish [directive]
+;  (case directive
+;    :aquarium/blowfish (println "feed the fish")
+;    :crypto/blowfish (println "encode the message")
+;    :blowfish (println "not sure what to do")))
+;(comment 
+;  (ns crypto)
+;  (fourclojure.joyofclojure/do-blowfish :blowfish)
+;  (fourclojure.joyofclojure/do-blowfish ::blowfish)
+;  (ns aquarium)
+;  (fourclojure.joyofclojure/do-blowfish :blowfish)
+;  (fourclojure.joyofclojure/do-blowfish :blowfish))
 ;
 ; Keywords vs Symbols
-(identical? :goat :goat)
-(identical? 'goat 'goat)
+;(identical? :goat :goat)
+;(identical? 'goat 'goat)
 
 (= 'goat 'goat)
 (+ 2 2)
@@ -532,3 +532,248 @@ evil-false
 ; contains is weird
 (contains? #{1 2 4 5} 4)
 (contains? [1 2 4 3] 4)
+
+; clojure.set
+(require 'clojure.set)
+(def s1 #{:humans :zombies :robots})
+(def s2 #{:chupacabra :zombies :humans})
+
+; intersection takes a variable number of arguments
+(clojure.set/intersection s1 s2)
+(clojure.set/intersection s1
+                          s2
+                          #{:pocky :scum :humans :chimpanzees})
+
+; union
+(clojure.set/union s1 s2)
+(clojure.set/union s1
+                   s2
+                   #{:tee-hee :facebook})
+
+; difference - slightly different than set theory (i think)
+(clojure.set/difference #{1 2 3 4} #{3 4 5 6})
+
+; thinking in maps
+(hash-map :a 1 :b 2 :c 3 :d 4 :e 5)
+; supports heterogenous keys
+(let  [m  {:a 1, 1 :b, [1 2 3] "4 5 6"}]
+   [(get m :a)  (get m  [1 2 3])])
+; maps are functions of their keys
+(let  [m  {:a 1, 1 :b, [1 2 3] "4 5 6"}]
+   [(m :a)  (m  [1 2 3])]) 
+; Providing a map to the seq function will return a sequence of map entries: 
+(seq {:a 1 :b 2})
+; returns vectors of key/value pairs, maps can be created idiomatically this way, as well:
+(into {} '([:a 1] [:b 2]))
+; Even if your embedded pairs aren't vectors, they can be made to be for building a new 
+; map: 
+(into  {}  (map vec '[(:a 1)  (:b 2)]))
+; Pairs don't have to be explicitly grouped, can use apply
+(apply hash-map [:a 1 :b 2])
+; zipmap combines keys and values
+(zipmap [:a :b] [1 2])
+; hashmaps have no ordering guarantees.  If you need order, use sorted-map instead
+; by default, sorted on keys:
+(sorted-map :thx 1381 :r2d 2)
+(sorted-map "bac" 2 "abc" 9)
+; use sorted-map-by for an alternative key ordering
+(sorted-map-by #(compare (subs %1 1) (subs %2 1)) "bac" 2 "abc" 9)
+; hashmaps have no ordering guarantees.   
+; sorted maps and sets can efficiently jump to different keys, done with subseq and rsubesq functions
+; hash maps treat different types of the same key as different, other maps do not
+(assoc {1 :int} 1.0 :float)
+(assoc (sorted-map 1 :int) 1.0 :float)
+
+; array maps guarantee insertion ordering
+(seq (hash-map :a 1 :b 2 :c 3))
+(seq (array-map :a 1 :b 2 :c 3))
+
+; putting it all together- finding the position of an element in a sequence
+; function pos must
+;   - work on any composite type returning indices corresponding to some value
+;   - return a numerical index for sequential collections or associated keys for maps and sets
+;   - Otherwise return nil
+(defn pos [e coll]
+  (let [cmp (if (map? coll)
+              #(= (second %1) %2)
+              #(= %1 %2))]
+    (loop [s coll idx 0]
+      (when (seq s)
+        (if (cmp (first s) e)
+          (if (map? coll)
+            (first (first s))
+            idx)
+          (recur (next s) (inc idx)))))))
+(pos 3 [:a 1 :b 2 :c 3 :d 4])
+(pos :foo [:a 1 :b 2 :c 3 :d 4])
+(pos 3 {:a 1 :b 2 :c 3 :d 4})
+(pos 3 '(:a 1 :b 2 :c 3 :d 4))
+(pos \3 ":a 1 :b 2 :c 3 :d 4")
+
+; what if you lay them out as sequences of indices and values [[index1 value1] [index2 value2]...[indexn valuen]]
+(defn index [coll]
+  (cond
+    (map? coll) (seq coll)
+    (set? coll) (map vector coll coll)
+    :else (map vector (iterate inc 0) coll)))
+(index [:a 1 :b 2 :c 3 :d 4])
+(index {:a 1 :b 2 :c 3 :d 4})
+(index #{:a 1 :b 2 :c 3 :d 4})
+
+(defn pos 
+  [e coll]
+   (for [[i v] (index coll) :when (= e v)] i))
+(pos 3 [:a 1 :b 2 :c 3 :d 4])
+(pos 3 {:a 1 :b 2 :c 3 :d 4})
+(pos 3 [:a 3 :b 3 :c 3 :d 4])
+(pos 3 {:a 3 :b 3 :c 3 :d 4})
+; modify it so you pass it a predicate function
+(defn pos
+  [pred coll]
+  (for [ [i v] (index coll) :when (pred v)] i))
+(pos #(3 4) {:a 1 :b 2 :c 3 :d 4})
+(pos even? [2 3 6 7])
+
+
+; Immutability
+(def baselist (list :barnabas :adam))
+(def lst1 (cons :willie baselist))
+(def lst2 (cons :phoenix baselist))
+(println baselist)
+(println lst1)
+(println  lst2)
+; baselist is the shared part of lst1 and lst2
+; next parts of both lists are identical - the same object
+(= (next lst1) (next lst2))
+(identical? (next lst1) (next lst2))
+
+; ex - build a tree, examine shared parts of collections
+; each node is a map  {:val 5 :L nil :R nil}
+{:val 5 :L nil :R nil}
+; to represent an empty tree we'll use nil
+(defn xconj
+  [t v]
+  (cond
+    (nil? t) {:val v :L nil :R nil}
+    (< v (:val t)) {:val (:val t)
+                   :L (xconj (:L t) v)
+                   :R (:R t)}
+    :else          {:val (:val t)
+                    :L (:L t)
+                    :R (xconj (:R t) v)}))
+(def tree1 (xconj nil 5)) 
+(def tree1 (xconj tree1 3))
+(println tree1)
+(def tree1 (xconj tree1 2))
+(println tree1)
+
+; function to print tree nicer
+(defn xseq
+  [t]
+  (when (seq t)
+    (concat (xseq (:L t)) [(:val t)] (xseq (:R t)))))
+(xseq tree1)
+(def tree2 (xconj tree1 9))
+(println tree2)
+(xseq tree2)
+(xseq (:L tree1))
+(xseq (:L tree2))
+; tree1 and tree2 share, left sides are identical
+(identical? (:L tree1) (:L tree2))
+; Values and unchanged branches are never copied, but references to them are 
+; copied from nodes in the old tree to nodes in the new one.
+; 
+; Not viable in production
+; 
+;   -It's just a binary tree.
+;   -It can only store numbers. 
+;   -It'll overflow the stack if the tree gets too deep. 
+;   -It produces (via xseq) a non-lazy seq that will contain a whole copy of the tree. 
+;   -It can create unbalanced trees that'll have bad "worst case" algorithmic 
+;     complexity.
+
+
+
+; Laziness
+; most languages are eagerly evaluated, arguments are evaluated immediately
+; a lazy programming language will only evaluate a function argument if that argument
+; is needed in an overarching computation
+; e.g. Java's && operator is lazy (short-circuiting)
+; laziness allows the avoidance of errors in the evaluation of compound structures
+(defn if-chain 
+  [x y z]
+  (if x
+    (if y
+      (if z
+        (do
+          (println "Made it!")
+          :all-truthy)))))
+(if-chain () 42 true)
+(if-chain true true false)
+
+; equivalent to (thanks to "lazy" and)
+(defn and-chain [x y z]
+  (and x y z (do (println "Made it!") :all-truthy)))
+(and-chain () 42 true)
+(and-chain true true false)
+
+
+; the lazy-seq recipe
+; function that makes a deeply nested structure from a sequence
+; (steps [1 2 3 4]) => [1 [2 [3 [4[]]]]]
+; first attempt - recursion
+(defn rec-step
+  [[ x & xs]] ; one argument, a vector
+  (if x
+    [x (rec-step xs)]
+    [x]))
+(rec-step [1 2 3 4])
+; uh-oh
+(rec-step (range 2000))
+
+; lazy recipe
+; (1) use the lazy-seq macro at the outermost of level of your lazy sequence producing 
+; expression(s)
+; (2) if you happen to be consuming another sequence during your operations, then use rest
+; instead of next
+; (3) Prefer higher-order functions when processing sequences
+; (4) Don't hold onto your head
+;
+
+
+; rest vs next
+(def very-lazy (-> (iterate #(do (print  \.) (inc %)) 1)
+                   rest rest rest))
+
+(def less-lazy (-> (iterate #(do (print \.) (inc %)) 1)
+                   next next next))
+(println (first very-lazy))
+(println (first less-lazy))
+; rest doesn't realize any more elements that it needs to; nest does.  In order to determine
+; whether a seq is empty, next needs to check whether there's at least one thing in it, thus
+; potentially causing one extra realization
+; in general, use next unless you want the code to be as lazy as possible
+
+; using lazy-seq and rest
+(defn lz-rec-step 
+  [s]
+  (lazy-seq
+    (if (first s)
+      [(first s) (lz-rec-step (rest s))]
+      [])))
+(lz-rec-step [1 2 3 4])
+(class (lz-rec-step [1 2 3 4]))
+(dorun (lz-rec-step (range 20000)))
+
+; simple lazy range example 
+
+(defn simple-range 
+  [i limit]
+  (lazy-seq
+    (when (< i limit)
+      (cons i (simple-range (inc i) limit)))))
+(simple-range 0 9)
+; if you hang onto the head of the sequence, that sequence will be prevented from garbage collection
+
+; simplest way to retain the head of the sequence is through a binding
+(let [r (range 1e9)] [(first r) (last r)])
