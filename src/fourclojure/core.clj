@@ -1,6 +1,7 @@
 (ns fourclojure.core
   (require [clojure.string :as string]
-           [clojure.set :as set]))
+           [clojure.set :as set])
+  (import (java.lang Integer)))
 
 (defn foo
   "I don't do a whole lot." [x]
@@ -889,3 +890,34 @@
 (= nil (tic-tac-toe [[:x :o :x]
                      [:x :o :x]
                      [:o :x :o]]))
+
+; Problem 74 - Filter Perfect Squares
+; Given a string of comma separated integers, write a function which returns a
+; new comma separated string that only contains the numbers which are perfect 
+; squares.
+(defn filter-perfect
+  [s]
+  (let [perfect-squares (lazy-seq
+                          (map #(* % %) (range)))
+        perfect-square? (fn [n] (boolean (some #(= % n) (take n perfect-squares))))]
+    (apply str (interpose "," (filter perfect-square?
+                                      (map (comp (fn [a] (Integer. a)) str) (remove #{\,} (seq s))))))))
+(map )
+(def perfect-squares
+  (lazy-seq
+    (map #(* % %) (range))))
+(defn perfect-square?
+  [n]
+  (boolean (some #(= % n) (take n perfect-squares))))
+(defn testperf
+  [s]
+ (apply str (interpose "," (filter perfect-square?  
+  (map (comp  (fn [a] (Integer. a)) str) (remove #{\,} (seq s)))))))
+(testperf "4,5,6,7")
+(perfect-square? 10)
+ (map (fn [a] (Integer. a)) ["4" "5"])
+(int (str \4))
+(Integer/parseInt "4")
+(=  (filter-perfect "4,5,6,7,8,9") "4,9")
+(=  (filter-perfect "15,16,25,36,37") "16,25,36")
+(filter perfect-square? (map (comp (fn [a] (Integer. a)) str) (remove #{\,} (seq "14,15,16,17,18"))))
