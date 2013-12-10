@@ -937,3 +937,36 @@
 (=  (totient 10)  (count '(1 3 7 9)) 4)
 (=  (totient 40) 16)
 (=  (totient 99) 60)
+
+; Problem 77 - Anagram Finder
+; Write a function which finds all the anagrams in a vector of words. 
+; A word x is an anagram of word y if all the letters in x can be rearranged 
+; in a different order to form y. Your function should return a set of sets, 
+; where each sub-set is a group of words which are anagrams of each other. 
+; Each sub-set should have at least two words. Words without any anagrams 
+; should not be included in the result.
+(defn anagrams
+  [coll]
+  (->> (vals (apply merge-with into (map #(hash-map (set %) [%]) coll)))
+  (filter #(> (count %) 1))
+  (map (partial into #{}))
+  set))
+(= (anagrams ["meat" "mat" "team" "mate" "eat"])
+   #{#{"meat" "team" "mate"}})
+(= (anagrams ["veer" "lake" "item" "kale" "mite" "ever"])
+   #{#{"veer" "ever"} #{"lake" "kale"} #{"mite" "item"}})
+
+
+(def v1 ["veer" "lake" "item" "kale" "mite" "ever"])
+(def s1 (reduce (fn 
+                  [acc e]
+                  (merge-with concat acc set e e)) {} v1))
+s1
+
+(set (map (partial into #{}) (filter #(> (count %) 1) 
+                                     (vals (apply merge-with into 
+                                                  (map #(hash-map (set %) [%]) v1))))))
+(->> (vals (apply merge-with into (map #(hash-map (set %) [%]) v1)))
+  (filter #(> (count %) 1))
+  (map (partial into #{}))
+  set)
